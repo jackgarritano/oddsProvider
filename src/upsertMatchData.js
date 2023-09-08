@@ -1,6 +1,3 @@
-import "dotenv/config";
-import { createClient } from "@supabase/supabase-js";
-
 const NOT_NULL_FIELDS = [
     "id",
     "status",
@@ -12,24 +9,10 @@ const NOT_NULL_FIELDS = [
     "closes",
 ];
 
-const options = {
-	auth: {
-		persistSession: false,
-		autoRefreshToken: false,
-		detectSessionInUrl: false,
-	},
-};
-
-const supabase = createClient(
-	process.env.API_URL,
-	process.env.SERVICE_ROLE_KEY,
-	options
-);
-
 /*
 Upserts all active matches into db
 */
-async function upsertMatchData() {
+export default async function upsertMatchData(supabase) {
 	const rawMatchData = await fetchFromCompetitionsEndpt();
 	const organizedMatchData = await organizeCompetitionsData(rawMatchData);
 
@@ -70,30 +53,6 @@ function organizeCompetitionsData(data) {
 		return Object.keys(marketsObj).length != 0; //competitions that aren't matches still show up but will always show as having no markets
 	});
 	const formattedMatchesList = matchesList.map((el) => mapToSchema(el));
-	formattedMatchesList.push({
-		id: "6969",
-		status: null,
-		team1: null,
-		team2: "Newcastle United",
-		draw_price: 4.794,
-		team1_price: 6.657,
-		team1_score: null,
-		team2_price: 1.411,
-		team2_score: null,
-		closes: 1695569400000,
-	});
-	formattedMatchesList.push({
-		id: "420",
-		status: "fake",
-		team1: "hello plz work",
-		team2: "Newcastle United",
-		draw_price: 4.794,
-		team1_price: 6.657,
-		team1_score: null,
-		team2_price: 1.411,
-		team2_score: null,
-		closes: 1695569400000,
-	});
 	const formattedMatchesListNoNull = formattedMatchesList.filter((el) =>
 		matchObeysNullRules(el)
 	); //transaction will fail if unallowed nulls are present
@@ -168,11 +127,3 @@ function mapToSchema(matchObj) {
 		closes,
 	};
 }
-
-/* 
-All competitions need to be upserted into the db
-All competitions that are after closes but not yet resulted or cancelled need to be polled w/ events endpt
-All competitions that are resulted need to get scores pulled
-*/
-
-upsertMatchData();
