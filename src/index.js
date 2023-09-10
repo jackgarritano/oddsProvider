@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 import upsertMatchData from "./upsertMatchData.js";
 import { pollMatchInProgress, getSavedMatchesInProgress } from "./pollMatchInProgess.js";
+import { getScore } from "./getScore.js";
 
 /* 
 [x] All competitions need to be upserted into the db
@@ -55,3 +56,6 @@ class Queue {
 		return this.queue.length > 0 ? this.queue[0] : null;
 	}
 }
+
+getScore({team1: 'Liverpool', team2: 'Aston Vila'})
+	.then(res => console.log(res));

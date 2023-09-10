@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "type": "module",
-    "scripts": {
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js"
   },
@@ -14,6 +14,7 @@
     "supabase": "^1.93.0"
   },
   "dependencies": {
+    "@aws-sdk/client-lambda": "^3.409.0",
     "@supabase/supabase-js": "^2.33.1",
     "dotenv": "^16.3.1"
   }
