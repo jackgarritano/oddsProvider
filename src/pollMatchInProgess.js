@@ -7,6 +7,11 @@ endpoint seems to not include matches for which betting has closed, these
 matches need to be polled via the events endpoint on a per-match basis
 */
 
+
+/*
+Wrapper for the fetch function which checks if the status
+has changed
+*/
 async function pollMatchInProgress({ eventId, currentStatus }) {
 	const matchData = await fetchFromEventsEndpt(eventId);
 	if (matchData.status != currentStatus) {
@@ -15,6 +20,9 @@ async function pollMatchInProgress({ eventId, currentStatus }) {
 	return null;
 }
 
+/*
+Calls the cloudbet events endpoint
+*/
 async function fetchFromEventsEndpt(eventId) {
 	const data = await fetch(
 		`https://sports-api.cloudbet.com/pub/v2/odds/events/${eventId}?markets=soccer.match_odds`,
@@ -29,6 +37,9 @@ async function fetchFromEventsEndpt(eventId) {
 	return parsedData;
 }
 
+/*
+Queries the db for matches in progress
+*/
 async function getSavedMatchesInProgress(supabase) {
 	const { data, error } = await supabase
 		.from("matches")

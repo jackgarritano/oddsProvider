@@ -1,6 +1,10 @@
 import { LambdaClient, GetFunctionCommand,UpdateFunctionConfigurationCommand, InvokeCommand } from "@aws-sdk/client-lambda";
 export { getScore };
 
+/*
+Creates the query used by the lambda and parses and returns 
+the result
+*/
 export default async function getScore({ team1, team2 }) {
 	const search = `${team1} vs ${team2} score`;
 	const query = encodeURIComponent(search.toLowerCase()).replace(/%20/g, "+");
@@ -16,8 +20,11 @@ export default async function getScore({ team1, team2 }) {
     return result?.outcomeList;
 }
 
+/*
+Changes the lambda's memory allocation in order to
+reset its ip address then invokes the lambda
+*/
 async function invokeScoreLambda(payload) {
-    console.log('payload ', payload);
 	const client = new LambdaClient({});
 	const getConfigCommand = new GetFunctionCommand({FunctionName: 'scrapeScores'});
 	const {MemorySize} = await client.send(getConfigCommand);
