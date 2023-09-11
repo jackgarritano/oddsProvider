@@ -20,9 +20,6 @@ export default async function upsertMatchData(supabase) {
 		.from("matches")
 		.upsert(organizedMatchData)
 		.select();
-
-	console.log("data ", data);
-	console.log("error", error);
 }
 
 /*
