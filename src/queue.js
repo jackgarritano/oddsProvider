@@ -1,6 +1,9 @@
-import { ToadScheduler, SimpleIntervalJob, AsyncTask } from 'toad-scheduler';
-import upsertMatchData from './upsertMatchData';
-import { pollMatchInProgress, getSavedMatchesInProgress } from "./pollMatchInProgess.js";
+import { ToadScheduler, SimpleIntervalJob, AsyncTask } from "toad-scheduler";
+import upsertMatchData from "./upsertMatchData";
+import {
+	pollMatchInProgress,
+	getSavedMatchesInProgress,
+} from "./pollMatchInProgess.js";
 /*
 Three schedules:
     Api schedule: run top item from api queue (either 
@@ -21,32 +24,35 @@ NEED TO HANDLE EVENT GETTING RESULTED FROM COMPETITIONS ENDPT: if an
 /*
 Runs top item from api queue
 */
-async function runFromQueue(queue){
-    const queueItem = queue.dequeue();
-    switch(queueItem.id){
-        case "COMP":
-            upsertMatchData();
-            queue.enqueue({id: "COMP"});
-            break;
-        case null:
-            queue.enqueue({id: "COMP"});
-            break;
-        default:
-
-    }
+async function runFromQueue(queue) {
+	const queueItem = queue.dequeue();
+	switch (queueItem.id) {
+		case "COMP":
+			upsertMatchData();
+			queue.enqueue({ id: "COMP" });
+			break;
+		case null:
+			queue.enqueue({ id: "COMP" });
+			break;
+		default:
+	}
 }
 
 //TODO
-async function pollMatchInProgressAndHandleResult(supabase, queue, item){
-    const pollResult = await pollMatchInProgress(item);
-    if(pollResult != null){
-
-    }
-    else{
-
-    }
+async function pollMatchInProgressAndHandleResult(supabase, queue, item) {
+	const pollResult = await pollMatchInProgress(item);
+	if (pollResult != null) {
+		const { error, data } = supabase
+			.select()
+			.from("matches")
+			.insert({ id: item.id, status: pollResult });
+		if ((pollResult = "RESULTED")) {
+			//TODO: kick off score polling
+		}
+	} else {
+        queue.enqueue(item);
+	}
 }
-
 
 /*
 Queue which only takes 1 of any individual item id where item
@@ -60,9 +66,9 @@ class Queue {
 	}
 
 	enqueue(value) {
-        if(!('id' in value)){
-            return;
-        }
+		if (!("id" in value)) {
+			return;
+		}
 		if (!this.set.has(value.id)) {
 			this.queue.push(value);
 			this.set.add(value.id);
