@@ -96,7 +96,6 @@ function startScorePoll(supabase, eventObj){
 		})
 }
 
-
 /*
 Queue which only takes 1 of any individual item id where item
     id is either the event id of the event to be polled or "COMP"
@@ -109,9 +108,9 @@ class Queue {
 	}
 
 	enqueue(value) {
-        if(!('id' in value)){
-            return;
-        }
+		if (!("id" in value)) {
+			return;
+		}
 		if (!this.set.has(value.id)) {
 			this.queue.push(value);
 			this.set.add(value.id);
