@@ -28,5 +28,5 @@ const supabase = createClient(
 
 
 
-getScore({team1: 'Liverpool', team2: 'Aston Vila'})
+getScore({team1: 'Man United', team2: 'Crystal Palace'})
 	.then(res => console.log(res));

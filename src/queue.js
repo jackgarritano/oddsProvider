@@ -82,8 +82,13 @@ async function pollMatchInProgressAndHandleResult(supabase, queue, item){
 	//TODO: need to kick off score poll in this case
 }
 
-//the docs recommend not using async/await inside task definition
-function startScorePoll(supabase, eventObj){
+async function startScorePoll(supabase, eventObj){
+	const saveGottenScore = async (outcomeList) => {
+		return supabase
+			.from('matches')
+			.update({})
+			.eq('id', item.eventId)
+	}
 	 getScore(eventObj)
 	 	.then((res) => {
 			//we got score back, save it to db
@@ -91,7 +96,9 @@ function startScorePoll(supabase, eventObj){
 
 			}
 			else{
-
+				const task = new AsyncTask(`${eventObj.id} score poll`, () => {
+					if()
+				})
 			}
 		})
 }

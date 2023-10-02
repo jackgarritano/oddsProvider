@@ -17,6 +17,7 @@ export default async function getScore({ team1, team2 }) {
 		return null;
 	}
 	const result = JSON.parse(lambdaResult?.result);
+	console.log('result in fn', result);
     return result?.outcomeList;
 }
 
