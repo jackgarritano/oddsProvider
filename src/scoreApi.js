@@ -34,13 +34,16 @@ export default async function getScore({ team1, team2 }) {
 	}
 
 	const score = {};
+	if(correctMatch.status !== 'FINISHED'){
+		return null;
+	}
 	if(correctMatch.homeTeam.id === team1Id){
-		score[team1] = correctMatch.score.fullTime.home;
-		score[team2] = correctMatch.score.fullTime.away;
+		score['team1'] = correctMatch.score.fullTime.home;
+		score['team2'] = correctMatch.score.fullTime.away;
 	}
 	else{
-		score[team1] = correctMatch.score.fullTime.away;
-		score[team2] = correctMatch.score.fullTime.home;
+		score['team1'] = correctMatch.score.fullTime.away;
+		score['team2'] = correctMatch.score.fullTime.home;
 	}
 	return score;
 }
@@ -63,7 +66,7 @@ async function getRecentMatches(teamId){
 	const today = new Date();
 	const weekAgo = new Date(today - 7 * 24 * 60 * 60 * 1000);
 	const weekAhead = new Date(today + 7 * 24 * 60 * 60 * 1000);
-	const unparsedData = await fetch(`https://api.football-data.org/v4/teams/${teamId}/matches?limit=5&status=FINISHED&dateFrom=${formatDate(weekAgo)}&dateTo=${formatDate(weekAhead)}`, {
+	const unparsedData = await fetch(`https://api.football-data.org/v4/teams/${teamId}/matches?limit=5&dateFrom=${formatDate(weekAgo)}&dateTo=${formatDate(weekAhead)}`, {
 		headers: {
 			'X-Auth-Token': process.env.FOOTBALL_API_TOKEN,
 		},

@@ -1,6 +1,6 @@
 import { ToadScheduler, SimpleIntervalJob, AsyncTask } from 'toad-scheduler';
 import upsertMatchData from './upsertMatchData.js';
-import getScore from './getScore.js';
+import getScore from './scoreApi.js';
 import { pollMatchInProgress, getSavedMatchesInProgress } from "./pollMatchInProgess.js";
 /*
 Three schedules:
@@ -20,6 +20,12 @@ NEED TO HANDLE EVENT GETTING RESULTED FROM COMPETITIONS ENDPT: if an
 
 Need ways of checking that score isn't already being polled for when starting to poll for it
 */
+
+const cloudbetQueue = new Queue();
+const footballApiQueue = new Queue();
+
+
+
 let counter = 0;
 
 const scheduler = new ToadScheduler();
@@ -41,15 +47,15 @@ async function asyncTest(){
 /*
 Runs top item from api queue
 */
-async function runFromQueue(queue){
-    const queueItem = queue.dequeue();
+async function runFromCloudbetQueue(supabase){
+    const queueItem = cloudbetQueue.dequeue();
     switch(queueItem.id){
         case "COMP":
             upsertMatchData();
-            queue.enqueue({id: "COMP"});
+            cloudbetQueue.enqueue({id: "COMP"});
             break;
         case null:
-            queue.enqueue({id: "COMP"});
+            cloudbetQueue.enqueue({id: "COMP"});
             break;
 		//event id of individual event
         default:
@@ -57,12 +63,32 @@ async function runFromQueue(queue){
     }
 }
 
-//TODO
-async function pollMatchInProgressAndHandleResult(supabase, queue, item){
+async function runFromFootballApiQueue(supabase){
+	//needs to have team1, team2, id
+	const queueItem = footballApiQueue.dequeue();
+	if(queueItem){
+		const score = await getScore(queueItem);
+		if(score){
+			const {data, error} = supabase
+				.from('matches')
+				.update({
+					team1_score: scoreObj['team1'],
+					team2_score: scoreObj['team2'],
+				})
+				.eq('id', item.eventId)
+		}
+		else{
+			//possibly have this in a catch
+			footballApiQueue.enqueue(queueItem);
+		}
+	}
+}
+
+async function pollMatchInProgressAndHandleResult(supabase, item){
     const pollResult = await pollMatchInProgress(item);
 	//status is the same
     if(pollResult == null){
-		queue.enqueue(item);
+		cloudbetQueue.enqueue(item);
 		return;
 	}
 	//status has changed, need to update db and possibly begin polling for score
@@ -72,35 +98,14 @@ async function pollMatchInProgressAndHandleResult(supabase, queue, item){
 		.eq('id', item.eventId)
 	if(error){
 		console.log('supabase error in pollMatchAndHandleResult: ', error);
-		queue.enqueue(item);
+		cloudbetQueue.enqueue(item);
 		return;
 	}
 	if(pollResult !== 'RESULTED'){
-		queue.enqueue(item);
+		cloudbetQueue.enqueue(item);
 		return;
 	}
-	//TODO: need to kick off score poll in this case
-}
-
-async function startScorePoll(supabase, eventObj){
-	const saveGottenScore = async (outcomeList) => {
-		return supabase
-			.from('matches')
-			.update({})
-			.eq('id', item.eventId)
-	}
-	 getScore(eventObj)
-	 	.then((res) => {
-			//we got score back, save it to db
-			if(res){
-
-			}
-			else{
-				const task = new AsyncTask(`${eventObj.id} score poll`, () => {
-					if()
-				})
-			}
-		})
+	footballApiQueue.enqueue(item);
 }
 
 /*
