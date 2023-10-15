@@ -48,23 +48,27 @@ async function asyncTest(){
 Runs top item from api queue
 */
 async function runFromCloudbetQueue(supabase){
+	//needs queueItemId, eventId, currentStatus
     const queueItem = cloudbetQueue.dequeue();
     switch(queueItem.id){
+		//hit competitions endpoint and update db
         case "COMP":
+			//update db with data from competitions endpt (don't think matches in progress will be updated here)
             upsertMatchData();
             cloudbetQueue.enqueue({id: "COMP"});
             break;
+		//if for some reason the comp item isn't in the queue, add it
         case null:
             cloudbetQueue.enqueue({id: "COMP"});
             break;
 		//event id of individual event
         default:
-
+			pollMatchInProgressAndHandleResult(supabase, queueItem);
     }
 }
 
 async function runFromFootballApiQueue(supabase){
-	//needs to have team1, team2, id
+	//needs to have queueItemId, team1, team2, eventId
 	const queueItem = footballApiQueue.dequeue();
 	if(queueItem){
 		const score = await getScore(queueItem);
@@ -75,7 +79,7 @@ async function runFromFootballApiQueue(supabase){
 					team1_score: scoreObj['team1'],
 					team2_score: scoreObj['team2'],
 				})
-				.eq('id', item.eventId)
+				.eq('id', queueItem.eventId)
 		}
 		else{
 			//possibly have this in a catch
@@ -101,11 +105,35 @@ async function pollMatchInProgressAndHandleResult(supabase, item){
 		cloudbetQueue.enqueue(item);
 		return;
 	}
+	//do we actually want to enqueue items that aren't resulted but are done?
 	if(pollResult !== 'RESULTED'){
 		cloudbetQueue.enqueue(item);
 		return;
 	}
 	footballApiQueue.enqueue(item);
+}
+
+//find all RESULTED games in db without score, queue them into football api queue (remember to include queueItemId)
+async function queueUnscoredGames(supabase){
+	const {data, error} = supabase
+		.from('matches')
+		.select('id, team1, team2')
+		.eq('status', 'RESULTED')
+		.or('team1_score.is.null,team2_score.is.null');
+	if(error){
+		console.log('supabase error in queueUnscoredGames: ', error, '. Nothing queued');
+		return;
+	}
+	for(const unscoredMatch of data){
+		footballApiQueue.enqueue(
+			{
+				queueItemId: unscoredMatch.id,
+				team1: unscoredMatch.team1,
+				team2: unscoredMatch.team2,
+				eventId: unscoredMatch.id,
+			}
+		);
+	}
 }
 
 /*
@@ -120,12 +148,12 @@ class Queue {
 	}
 
 	enqueue(value) {
-		if (!("id" in value)) {
+		if (!("queueItemId" in value)) {
 			return;
 		}
-		if (!this.set.has(value.id)) {
+		if (!this.set.has(value.queueItemId)) {
 			this.queue.push(value);
-			this.set.add(value.id);
+			this.set.add(value.queueItemId);
 		}
 	}
 
@@ -134,7 +162,7 @@ class Queue {
 			return null; // or throw an error, or any other handling of empty queue
 		}
 		const value = this.queue.shift();
-		this.set.delete(value.id);
+		this.set.delete(value.queueItemId);
 		return value;
 	}
 
