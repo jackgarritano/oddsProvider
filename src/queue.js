@@ -3,45 +3,55 @@ import upsertMatchData from './upsertMatchData.js';
 import getScore from './scoreApi.js';
 import { pollMatchInProgress, getSavedMatchesInProgress } from "./pollMatchInProgess.js";
 /*
-Three schedules:
-	Api schedule: run top item from api queue (either 
-		upsertMatchData or pollMatchInProgess)
-	Scores schedule: attempt to pull a score for a resulted
-		event every 20 minutes (each event is on its own schedule)
-	Polling schedule: need to poll db occasionally
-
-NEED TO HANDLE EVENT GETTING RESULTED FROM COMPETITIONS ENDPT: if an
-	event somehow changes to resulted and that gets picked up from the
-	competitions poll, that event will perpetually not have a score if
-	the only way of starting the scores schedule is from the pollMatchInProgress
-	call. Need to have a set of all events currently being polled for score and
-	occasionally poll db for resulted events without score and push into that
-	set
-
-Need ways of checking that score isn't already being polled for when starting to poll for it
+Two queues:
+	Cloudbet queue: every 10 seconds, either updates upcoming matches
+		in db and then enqueues matches in progress, or polls a match
+		in progress to see if it has finished
+	Scores schedule: every 20 seconds, either enqueues resulted matches
+		from db or polls a resulted match for score
 */
+
+// let counter = 0;
+
+// const scheduler = new ToadScheduler();
+
+// const task = new AsyncTask('test', asyncTest);
+
+// const job = new SimpleIntervalJob({ seconds: 5 }, task, { id: 'testId' });
+
+// scheduler.addSimpleIntervalJob(job);
+
+// async function asyncTest() {
+// 	console.log('test');
+// 	if (counter >= 5) {
+// 		scheduler.removeById('testId');
+// 	}
+// 	counter++;
+// }
 
 const cloudbetQueue = new Queue();
 const footballApiQueue = new Queue();
 
+//start the scheudules that repeatedly run cloudbet and football api queues
+export default function schedulePolls(supabase){
+	const scheduler = new ToadScheduler();
+	scheduleCloudbet(scheduler, supabase);
+	scheduleScore(scheduler, supabase);
+}
 
 
-let counter = 0;
+function scheduleCloudbet(scheduler, supabase){
+	//should the lambda be async?
+	const cloudbetTask = new AsyncTask('cloudbetQueue', () => runFromCloudbetQueue(supabase));
+	const cloudbetJob = new SimpleIntervalJob({seconds: 10}, cloudbetTask);
+	scheduler.addSimpleIntervalJob(cloudbetJob);
+}
 
-const scheduler = new ToadScheduler();
-
-const task = new AsyncTask('test', asyncTest);
-
-const job = new SimpleIntervalJob({ seconds: 5 }, task, { id: 'testId' });
-
-scheduler.addSimpleIntervalJob(job);
-
-async function asyncTest() {
-	console.log('test');
-	if (counter >= 5) {
-		scheduler.removeById('testId');
-	}
-	counter++;
+function scheduleScore(){
+	//should the lambda be async?
+	const scoreTask = new AsyncTask('footballApiQueue', () => runFromFootballApiQueue(supabase));
+	const scoreJob = new SimpleIntervalJob({seconds: 20}, scoreTask);
+	scheduler.addSimpleIntervalJob(scoreJob);
 }
 
 /*
