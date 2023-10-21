@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 import upsertMatchData from "./upsertMatchData.js";
+import schedulePolls from "./queue.js";
 import { pollMatchInProgress, getSavedMatchesInProgress } from "./pollMatchInProgess.js";
 import { getScore } from "./getScore.js";
 
@@ -26,7 +27,4 @@ const supabase = createClient(
 	options
 );
 
-
-
-getScore({team1: 'Man United', team2: 'Crystal Palace'})
-	.then(res => console.log(res));
+schedulePolls(supabase);
