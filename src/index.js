@@ -13,6 +13,10 @@ import { getScore } from "./getScore.js";
 [x] All competitions that are resulted need to get scores pulled
 */
 
+/*
+TODO: make sure queuematchesinprogress query works correctly
+*/
+
 const options = {
 	auth: {
 		persistSession: false,

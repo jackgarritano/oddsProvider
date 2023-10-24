@@ -125,16 +125,18 @@ async function pollMatchInProgressAndHandleResult(supabase, item) {
 //need to get all matches from db which do not have a status signifying resulted and have a 'closes' time before the current time
 async function queueMatchesInProgress(supabase) {
 	log.info('running queueMatchesInProgress');
-	const { data, error } = supabase
+	const { data, error } = await supabase
 		.from('matches')
 		.select('id, team1, team2')
 		.lte('closes', Date.now())
-		.nin('status', ['RESULTED', 'CANCELLED']);
+		.not('status', 'in', `(RESULTED, CANCELLED)`);
 	if (error) {
 		log.error('supabase error in queueMatchesInProgress: ', error, '. Nothing queued');
 		return;
 	}
 	log.info('matches in progress pulled from db');
+	log.info('data type: ', typeof data);
+	log.info('data: ', data);
 	for (const inProgressMatch of data) {
 		cloudbetQueue.enqueue(
 			{
@@ -146,7 +148,6 @@ async function queueMatchesInProgress(supabase) {
 			}
 		);
 	}
-
 }
 
 //runs top item from football api queue
@@ -170,7 +171,7 @@ async function runFromFootballApiQueue(supabase) {
 			const score = await getScore(queueItem);
 			if (score) {
 				log.info('returned score was ', score);
-				const { data, error } = supabase
+				const { data, error } = await supabase
 					.from('matches')
 					.update({
 						team1_score: scoreObj['team1'],
@@ -190,7 +191,7 @@ async function runFromFootballApiQueue(supabase) {
 //find all RESULTED games in db without score, queue them into football api queue (remember to include queueItemId)
 async function queueUnscoredGames(supabase) {
 	log.info('running queueUnscoredGames');
-	const { data, error } = supabase
+	const { data, error } = await supabase
 		.from('matches')
 		.select('id, team1, team2')
 		.eq('status', 'RESULTED')

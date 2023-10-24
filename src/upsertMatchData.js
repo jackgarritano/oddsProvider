@@ -1,3 +1,5 @@
+import log from './logger.js';
+
 const NOT_NULL_FIELDS = [
     "id",
     "status",
@@ -13,6 +15,7 @@ const NOT_NULL_FIELDS = [
 Upserts all active matches into db
 */
 export default async function upsertMatchData(supabase) {
+	log.info('running upsertMatchData');
 	const rawMatchData = await fetchFromCompetitionsEndpt();
 	const organizedMatchData = await organizeCompetitionsData(rawMatchData);
 
@@ -27,6 +30,7 @@ Returns the raw data from the cloudbet api competitions endpoint. This data shou
 represent currently active competitions
 */
 async function fetchFromCompetitionsEndpt() {
+	log.info('running fetchFromCompetitionsEndpt');
 	const data = await fetch(
 		"https://sports-api.cloudbet.com/pub/v2/odds/competitions/soccer-england-premier-league?markets=soccer.match_odds",
 		{
@@ -44,6 +48,7 @@ async function fetchFromCompetitionsEndpt() {
 Returns an array of matches formatted correctly to be included in the db
 */
 function organizeCompetitionsData(data) {
+	log.info('running organizeCompetitionsData');
 	const eventsList = data.events;
 	const matchesList = eventsList.filter((el) => {
 		const marketsObj = el.markets;
@@ -53,7 +58,7 @@ function organizeCompetitionsData(data) {
 	const formattedMatchesListNoNull = formattedMatchesList.filter((el) =>
 		matchObeysNullRules(el)
 	); //transaction will fail if unallowed nulls are present
-	console.log("matchlistnonull ", formattedMatchesListNoNull);
+	//log.info("matchlistnonull: ", formattedMatchesListNoNull);
 	return formattedMatchesListNoNull;
 }
 
