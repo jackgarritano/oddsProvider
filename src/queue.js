@@ -174,8 +174,8 @@ async function runFromFootballApiQueue(supabase) {
 				const { data, error } = await supabase
 					.from('matches')
 					.update({
-						team1_score: scoreObj['team1'],
-						team2_score: scoreObj['team2'],
+						team1_score: score['team1'],
+						team2_score: score['team2'],
 					})
 					.eq('id', queueItem.eventId)
 			}
